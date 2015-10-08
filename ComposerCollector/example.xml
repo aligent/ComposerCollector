@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<repositories>
+    <repository name = 'Jurlique_npg' url = 'git@git.assembla.com:jurlique-ngp.git' >
+        <branch name = 'master'/>
+        <branch name = 'staging'/>
+    </repository>
+        <repository name = 'aligent_magentodemo' url = 'git@git.assembla.com:dps-website-v4.git' >
+        <branch name = 'master'/>
+        <branch name = 'demo' />
+    </repository>
+    <repository name = 'dps_website_v4' url = 'git@git.assembla.com:dps-website-v4.git' >
+    </repository>
+
+</repositories>
