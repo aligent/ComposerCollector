@@ -5,7 +5,8 @@ import shutil
 import xml.etree.ElementTree
 import _thread
 import json
-import collections
+import networkx as nx
+
 __author__ = ''
 
 # Facilitates the loading of repository information
@@ -14,11 +15,17 @@ class RepositoryManager:
     REPO_DIR = 'repos'
 
     def __init__(self):
+
+        # Keeps track of repositories that are currently being downloaded
         self.repos_loading = 0
 
+        # Thread locking manager
         self.lock = _thread.allocate_lock()
 
+        # List of repository information that
         self.repositories = []
+
+        # Make directory for storing repos if does not exist
         if not os.path.isdir(self.REPO_DIR):
             os.mkdir(self.REPO_DIR)
 
@@ -28,22 +35,20 @@ class RepositoryManager:
         # Parse XML file into python structure
         repo_xml = xml.etree.ElementTree.parse(file).getroot()
 
-        # Check for existing repositories
+        # Check for existing repositories - if the repository already exists in the file system then
+        # check that it is updated, else download the repositroy
         existing = os.listdir('repos')
         if 'temp' in existing:
             existing.remove('temp')
         print('existing', existing)
 
+        # Create repository entry for each repo already in file system
         for repo_name in existing:
             self.load_existing_repository(repo_name)
 
-
-        # Load Repository data for each repository
-        # new thread is started for each repository, loading a repository consists of
-
+        # Load Repository data for any new repositories, preformed on new threads for
+        # simultaneous downloading
         for child in repo_xml:
-            print(child.tag, child.attrib)
-
             try:
                 # Flag that a repository is currently loading
                 if child.attrib['name'] not in existing:
@@ -130,12 +135,24 @@ class Stats:
                 if repo.master.composer_lock:
                     for module in repo.master.composer_lock['packages']:
                         if not module['name'] in self.module_use:
-                            print(module['name'], 'created')
                             self.module_use[module['name']] = 1
                         else:
                             self.module_use[module['name']] += 1
-                            print(module['name'], '++')
         print(self.module_use)
+
+
+class GraphVisualisation:
+
+    def __init__(self, repositories):
+        self.graph = nx.Graph()
+
+        for repo in repositories:
+            if repo.master:
+                print('repo.master.composer_lock', repo.master.composer_lock['packages'])
+                if repo.master.composer_lock:
+                    for module in repo.master.composer_lock['packages']:
+                        self.graph.add_edge(repo, module['name'])
+        nx.draw(self.graph)
 
 test = RepositoryManager()
 test.load_file('example.xml')
@@ -145,7 +162,7 @@ while test.repos_loading > 0:
     pass
 
 stats = Stats(test.repositories)
-
+graph = GraphVisualisation(test.repositories)
 
 
 
