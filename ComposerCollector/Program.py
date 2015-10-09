@@ -5,6 +5,7 @@ import shutil
 import xml.etree.ElementTree
 import _thread
 import json
+import collections
 __author__ = ''
 
 # Facilitates the loading of repository information
@@ -25,11 +26,17 @@ class RepositoryManager:
     def load_file(self, file):
 
         # Parse XML file into python structure
-        repX = xml.etree.ElementTree.parse(file).getroot()
+        repo_xml = xml.etree.ElementTree.parse(file).getroot()
+
+        # Check for existing repositories
+        existing = os.listdir('repos')
+        if 'temp' in existing:
+            existing.remove('temp')
+        print('existing', existing)
 
         # Load Repository data for each repository
         # new thread is started for each repository, loading a repository consists of
-        for child in repX:
+        for child in repo_xml:
             print(child.tag, child.attrib)
 
             try:
@@ -62,9 +69,9 @@ class RepositoryManager:
         # Downloaded to move to complete
         shutil.move(temp_path, complete_path)
         print(name, "loaded")
-        self.create_repository(name, complete_path)
 
         self.lock.acquire()
+        self.create_repository(name, complete_path)
         self.repos_loading -= 1
         self.lock.release()
 
