@@ -34,20 +34,32 @@ class RepositoryManager:
             existing.remove('temp')
         print('existing', existing)
 
+        for repo_name in existing:
+            self.load_existing_repository(repo_name)
+
+
         # Load Repository data for each repository
         # new thread is started for each repository, loading a repository consists of
+
         for child in repo_xml:
             print(child.tag, child.attrib)
 
             try:
                 # Flag that a repository is currently loading
-                self.repos_loading += 1
-                _thread.start_new_thread(self.load_repository, (child.attrib['name'], child.attrib['url'],))
+                if child.attrib['name'] not in existing:
+                    self.repos_loading += 1
+                    _thread.start_new_thread(self.load_new_repository, (child.attrib['name'], child.attrib['url'],))
             except _thread.error:
                 print('Error loading ', child.attrib['name'])
                 self.repos_loading -= 1
 
-    def load_repository(self, name, url):
+    def load_existing_repository(self, name):
+
+        repo = git.Repo(os.path.join('repos', name))
+        repo.remote().pull()
+        self.create_repository(name, os.path.join('repos', name))
+
+    def load_new_repository(self, name, url):
 
         # Repositories stored in temp while being created
         complete_path = os.path.join(self.REPO_DIR, name)
