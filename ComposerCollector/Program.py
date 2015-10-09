@@ -27,8 +27,6 @@ class RepositoryManager:
         # Parse XML file into python structure
         repX = xml.etree.ElementTree.parse(file).getroot()
 
-
-
         # Load Repository data for each repository
         # new thread is started for each repository, loading a repository consists of
         for child in repX:
@@ -42,13 +40,9 @@ class RepositoryManager:
                 print('Error loading ', child.attrib['name'])
                 self.repos_loading -= 1
 
-
-
     def load_repository(self, name, url):
 
-        # Lock for file creation and
-        self.lock.acquire()
-
+        # Repositories stored in temp while being created
         complete_path = os.path.join(self.REPO_DIR, name)
         temp_path = os.path.join(self.REPO_DIR, 'temp', name)
 
@@ -56,24 +50,23 @@ class RepositoryManager:
         if os.path.isdir(temp_path):
             shutil.rmtree(temp_path)
         os.makedirs(temp_path)
-        self.lock.release()
 
+        # Load Repository from remote
         repo = git.Repo.init(temp_path)
         origin = repo.create_remote('origin', url)
         print('fetching', name)
         origin.fetch()
         print('fetched', name)
-
-        # repository has finished loading
-        self.lock.acquire()
         origin.pull(origin.refs[0].remote_head)
 
-        self.repos_loading -= 1
+        # Downloaded to move to complete
         shutil.move(temp_path, complete_path)
-        self.lock.release()
         print(name, "loaded")
-
         self.create_repository(name, complete_path)
+
+        self.lock.acquire()
+        self.repos_loading -= 1
+        self.lock.release()
 
     def create_repository(self, name, repo_path):
 
@@ -83,10 +76,8 @@ class RepositoryManager:
 
         master = dm.Branch(composer_json, composer_lock)
 
-        newRepo = dm.Repository(name, repo_path, master)
-
-
-
+        new_repo = dm.Repository(name, repo_path, master)
+        self.repositories.append(new_repo)
 
     def load_json_file(self, repo_path, file_name):
 
@@ -103,11 +94,38 @@ class RepositoryManager:
         return data
 
 
+class Stats:
+
+    def __init__(self, repositories):
+        self.repositories = repositories
+
+        self.module_use = dict()
+        self.update_module_use()
+
+    def update_module_use(self):
+        print(self.repositories)
+        for repo in self.repositories:
+            print('repo.master', repo.master)
+            if repo.master:
+                print('repo.master.composer_lock', repo.master.composer_lock['packages'])
+                if repo.master.composer_lock:
+                    for module in repo.master.composer_lock['packages']:
+                        if not module['name'] in self.module_use:
+                            print(module['name'], 'created')
+                            self.module_use[module['name']] = 1
+                        else:
+                            self.module_use[module['name']] += 1
+                            print(module['name'], '++')
+        print(self.module_use)
+
 test = RepositoryManager()
 test.load_file('example.xml')
 
+
 while test.repos_loading > 0:
     pass
+
+stats = Stats(test.repositories)
 
 
 

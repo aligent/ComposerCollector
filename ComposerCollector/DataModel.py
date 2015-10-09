@@ -16,9 +16,9 @@ class Repository:
 class Branch:
 
     def __init__(self, composer_json, composer_lock):
-        self.composerJson = composer_json
+        self.composer_json = composer_json
 
-        self.composerLock = composer_lock
+        self.composer_lock = composer_lock
 
 
 class ComposerJson:
