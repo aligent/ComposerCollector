@@ -3,20 +3,22 @@ __author__ = ''
 
 class Repository:
 
-    def __init__(self):
-        self. name = ''
+    def __init__(self, name, path, master, branches=[]):
+        self. name = name
 
-        self.master = Branch.Branch()
+        self.path = path
+
+        self.master = master
 
         self.branches = []
 
 
 class Branch:
 
-    def __init__(self):
-        composerJson = ComposerJson()
+    def __init__(self, composer_json, composer_lock):
+        self.composerJson = composer_json
 
-        composerLock = ComposerLock()
+        self.composerLock = composer_lock
 
 
 class ComposerJson:

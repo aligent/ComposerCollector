@@ -4,7 +4,7 @@
         <branch name = 'master'/>
         <branch name = 'staging'/>
     </repository>
-        <repository name = 'aligent_magentodemo' url = 'git@git.assembla.com:dps-website-v4.git' >
+    <repository name = 'aligent_magentodemo' url = 'git@git.assembla.com:aligent.magentodemo.git' >
         <branch name = 'master'/>
         <branch name = 'demo' />
     </repository>
