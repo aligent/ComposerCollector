@@ -1,4 +1,4 @@
-import ComposerCollector.DataModel as dm
+import ComposerCollector.Data as dm
 import git
 import os
 import shutil
@@ -92,6 +92,7 @@ class RepositoryManager:
         self.repos_loading -= 1
         self.lock.release()
 
+    # Creates a representation of the needed components of a python repository
     def create_repository(self, name, repo_path):
 
         composer_lock = self.load_json_file(repo_path, 'composer.lock')
@@ -103,6 +104,7 @@ class RepositoryManager:
         new_repo = dm.Repository(name, repo_path, master)
         self.repositories.append(new_repo)
 
+    # Loads a composer json file
     def load_json_file(self, repo_path, file_name):
 
         lock_file_path = os.path.join(repo_path, file_name)
@@ -112,9 +114,6 @@ class RepositoryManager:
 
         with open(lock_file_path) as lock_file:
             data = json.load(lock_file)
-
-        print(data)
-
         return data
 
 
@@ -123,22 +122,25 @@ class Stats:
     def __init__(self, repositories):
         self.repositories = repositories
 
-        self.module_use = dict()
-        self.update_module_use()
+        self.package_used_by = dict()
+        self.package_use_frequency = dict()
+        self.update_stats()
 
-    def update_module_use(self):
-        print(self.repositories)
+    def update_stats(self):
         for repo in self.repositories:
-            print('repo.master', repo.master)
             if repo.master:
-                print('repo.master.composer_lock', repo.master.composer_lock['packages'])
                 if repo.master.composer_lock:
                     for module in repo.master.composer_lock['packages']:
-                        if not module['name'] in self.module_use:
-                            self.module_use[module['name']] = 1
+
+                        if not module['name'] in self.package_used_by:
+                            self.package_used_by[module['name']] = []
+
+                        self.package_used_by[module['name']].append(repo.name)
+
+                        if not module['name'] in self.package_use_frequency:
+                            self.package_use_frequency[module['name']] = 1
                         else:
-                            self.module_use[module['name']] += 1
-        print(self.module_use)
+                            self.package_use_frequency[module['name']] += 1
 
 
 class GraphVisualisation:
@@ -148,21 +150,22 @@ class GraphVisualisation:
 
         for repo in repositories:
             if repo.master:
-                print('repo.master.composer_lock', repo.master.composer_lock['packages'])
                 if repo.master.composer_lock:
                     for module in repo.master.composer_lock['packages']:
                         self.graph.add_edge(repo, module['name'])
-        nx.draw(self.graph)
+        #nx.draw(self.graph)
 
 test = RepositoryManager()
 test.load_file('example.xml')
 
-
+# Wait for repositories to finish downloading
 while test.repos_loading > 0:
     pass
+
 
 stats = Stats(test.repositories)
 graph = GraphVisualisation(test.repositories)
 
-
-
+print()
+print(stats.package_use_frequency)
+print(stats.package_used_by)

@@ -4,7 +4,7 @@ __author__ = ''
 class Repository:
 
     def __init__(self, name, path, master, branches=[]):
-        self. name = name
+        self.name = name
 
         self.path = path
 
