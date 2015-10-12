@@ -6,7 +6,7 @@ import xml.etree.ElementTree
 import _thread
 import json
 import networkx as nx
-
+import ComposerCollector.Interface as Interface
 __author__ = ''
 
 # Facilitates the loading of repository information
@@ -82,6 +82,8 @@ class RepositoryManager:
         origin.fetch()
         print('fetched', name)
         origin.pull(origin.refs[0].remote_head)
+
+        print(origin.refs)
 
         # Downloaded to move to complete
         shutil.move(temp_path, complete_path)
@@ -169,3 +171,5 @@ graph = GraphVisualisation(test.repositories)
 print()
 print(stats.package_use_frequency)
 print(stats.package_used_by)
+
+Interface.StatsToXML.frequency_outptut(stats.package_use_frequency, stats.package_used_by)

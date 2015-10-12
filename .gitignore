@@ -1,1 +1,3 @@
 ComposerCollector/repos
+*.xml
+ComposerCollector/__pycache__

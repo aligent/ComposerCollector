@@ -1,10 +1,13 @@
 <?xml version="1.0"?>
 <repositories>
-    <repository name = 'Jurlique_npg' url = 'git@git.assembla.com:jurlique-ngp.git' >
+    <repository name = 'Jurlique_npg' url = 'git@git.assembla.com:jurlique-ngp.git'
+            composerPath=''>
     </repository>
-    <repository name = 'aligent_magentodemo' url = 'git@git.assembla.com:aligent.magentodemo.git' >
+    <repository name = 'aligent_magentodemo' url = 'git@git.assembla.com:aligent.magentodemo.git'
+                composerPath=''>
     </repository>
-    <repository name = 'dps_website_v4' url = 'git@git.assembla.com:dps-website-v4.git' >
+    <repository name = 'dps_website_v4' url = 'git@git.assembla.com:dps-website-v4.git' composerPath='' >
+
     </repository>
 
 </repositories>
