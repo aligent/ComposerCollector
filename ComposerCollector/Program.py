@@ -33,9 +33,10 @@ class RepositoryManager:
             os.mkdir(self.COMPOSER_JSON_DIR)
 
     # Load XML file of repositories
-    def load_file(self, file):
+    def load_file(self, json_config):
         # Parse XML file into python structure
-        repo_xml = xml.etree.ElementTree.parse(file).getroot()
+        with open(json_config) as json_config_file:
+            config = json.load(json_config_file)
 
         # Check for existing repositories - if the repository already exists in the file system then
         # check that it is updated, else download the repositroy
@@ -44,52 +45,71 @@ class RepositoryManager:
             existing.remove('temp')
         print('existing', existing)
 
-        # Create repository entry for each repo already in file system
-        for repo_name in existing:
-            in_repo = repo_xml.find("./repositories/repository[@name='%s']" % repo_name)
+        repo_name_list = []
 
-            if not in_repo:
-                comp_path = in_repo.attrib['composer_path']
-                self.load_existing_repository(repo_name, comp_path)
-            else:
-                print(repo_name + ' is not in XML repository file, repository not loaded')
+        for name in config["repositories"].keys():
+            repo_name_list.append(name)
+
+        # Create repository entry for each repo that is in file system and config repo list
+        for repo_name in [val for val in existing if val in repo_name_list]:
+
+            existing_repo = config["repositories"][repo_name]
+
+            self.load_existing_repository(existing_repo['name'], existing_repo['branches'])
 
         # Load Repository data for any new repositories, preformed on new threads for
         # simultaneous downloading
-        for child in repo_xml.find("repositories"):
+        for repo in config["repositories"].values():
             try:
                 # Flag that a repository is currently loading
-                if child.attrib['name'] not in existing:
+                if repo['name'] not in existing:
                     self.repos_loading += 1
 
+                    #get brabch list
+
+                    print(repo['branches'])
                     # Name and URL required, will try without a branch
-                    _thread.start_new_thread(self.load_new_repository, (child.attrib['name'],
-                                                                        child.attrib['url'],
-                                                                        child.attrib['branch'] or '',
-                                                                        child.attrib['composer_path'] or '',))
+                    _thread.start_new_thread(self.load_new_repository, (repo['name'],
+                                                                        repo['url'],
+                                                                        repo['branches']),)
             except _thread.error:
-                print('Error loading ', child.attrib['name'])
+                print('Error loading ', repo['name'])
                 self.repos_loading -= 1
 
         # Wait for repositories to finish downloading
         while self.repos_loading > 0:
             pass
 
-    def load_existing_repository(self, name, comp_path):
-      #  subprocess.Popen(['git', 'config'], cwd='repos/%s/' % name, shell=True)
-        repo = git.Repo(os.path.join('repos', name))
-        repo.remote().fetch()
-        try:
-            repo.remote().pull()
-        except:
-            print("could not update", name)
-        self.create_repository(name, os.path.join('repos', name), comp_path)
+    def load_existing_repository(self, name, branches):
+        git_repo = git.Repo(os.path.join('repos', name))
+        git_repo.remote().fetch()
+        add_repo = dm.Repository(name, self.REPO_DIR)
 
-    def load_new_repository(self, name, url, branch, comp_path):
+        for branch in branches:
+            try:
+                print('Getting from branch', branch["name"])
+                # git_repo.pull()
+                self.quick_check_out(git_repo, branch)
+                print('got')
 
+                new_branch = dm.Branch(branch["name"],
+                                       self.load_json_file(os.path.join(self.REPO_DIR, name), 'composer.lock'),
+                                       self.load_json_file(os.path.join(self.REPO_DIR, name), 'composer.json'))
+
+                add_repo.branches[new_branch.name] = new_branch
+            except Exception:
+                print("Could not update branch,", branch)
+
+    def quick_check_out(self, repo, branch):
+        repo.head.reference = repo.create_head(branch["name"])
+        repo.head.reset(index=True, working_tree=True)
+
+    def load_new_repository(self, name, url, branches):
         # Repositories stored in temp while being created
         complete_path = os.path.join(self.REPO_DIR, name)
         temp_path = os.path.join(self.REPO_DIR, 'temp', name)
+
+        new_repo = dm.Repository(name, complete_path)
 
         # remove old version of repository
         if os.path.isdir(temp_path):
@@ -99,40 +119,32 @@ class RepositoryManager:
         # Load Repository from remote
         repo = git.Repo.init(temp_path)
         origin = repo.create_remote('origin', url)
-        print('fetching', name)
+
         origin.fetch()
-        print('fetched', name)
 
-        if branch and branch != '':
-            print(branch)
-            origin.pull(branch)
-        else:
-            origin.pull(origin.refs[0].remote_head)
+        for branch in branches:
+            try:
+                print('Getting from branch', branch["name"])
+                origin.pull(branch["name"])
+                print('got')
 
-        print(origin.refs)
+                new_branch = dm.Branch(branch["name"],
+                                       self.load_json_file(temp_path, 'composer.lock'),
+                                       self.load_json_file(temp_path, 'composer.json'))
+
+                new_repo.branches[new_branch.name] = new_branch
+            except:
+                print("Could not load branch,", branch, "from repo,", name)
 
         # Downloaded to move to complete
-        shutil.move(temp_path, complete_path)
         print(name, "loaded")
 
         self.lock.acquire()
-        self.create_repository(name, complete_path, comp_path)
+
         self.repos_loading -= 1
-        self.lock.release()
-
-    # Creates a representation of the needed components of a python repository
-    def create_repository(self, name, repo_path, composer_path=''):
-
-        complete_path = os.path.join(repo_path, composer_path)
-
-        composer_lock = self.load_json_file(complete_path, 'composer.lock')
-
-        composer_json = self.load_json_file(complete_path, 'composer.json')
-
-        master = dm.Branch(composer_json, composer_lock)
-
-        new_repo = dm.Repository(name, repo_path, master)
         self.repositories.append(new_repo)
+        shutil.move(temp_path, complete_path)
+        self.lock.release()
 
     # Loads a composer json file
     def load_json_file(self, repo_path, file_name):

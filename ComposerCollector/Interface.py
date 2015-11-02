@@ -68,43 +68,17 @@ class SatisCommunicator:
 
         return new_items
 
-
-class socket_interface:
-
-
-
-    def __int__(self, stats):
-        self.PORT = '8785'
-
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.bind(('', self.PORT))
-        self.socket.listen(1)
-        self.stats = stats
-
-        while True:
-            self.listen()
-
-    def listen(self):
-        csock, caddr = self.socket.accept()
-        print("Connection from: " + caddr)
-        req = csock.recv(1024)
-
-        print(req)
-
-
-
-
 SATIS_URL = 'http://localhost:4680/repo_manager.php'
 
 # Progarm run code test
 rm = program.RepositoryManager()
-rm.load_file('example.xml')
+rm.load_file('config.json')
 
-stats = program.Stats(rm.repositories)
+#stats = program.Stats(rm.repositories)
 
-satis = SatisCommunicator(SATIS_URL, rm)
-satis.update_satis()
+#satis = SatisCommunicator(SATIS_URL, rm)
+#satis.update_satis()
 
-StatsToXML.frequency_outptut(stats.package_use_frequency, stats.package_used_by)
+#StatsToXML.frequency_outptut(stats.package_use_frequency, stats.package_used_by)
 
-socket_interface(stats)
+
