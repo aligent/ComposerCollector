@@ -3,6 +3,8 @@ from xml.dom import minidom
 import requests
 import ComposerCollector.Program as program
 import json
+import socket
+import socketserver
 
 __author__ = ''
 
@@ -67,31 +69,32 @@ class SatisCommunicator:
         return new_items
 
 
-    def get_unique_adds(self):
-        repos = rm.repositories
+class socket_interface:
 
-        new_composer_repos = dict()
 
-        new_requires = dict()
 
-        for repo in repos:
+    def __int__(self, stats):
+        self.PORT = '8785'
 
-            composer_json = repo.master.composer_json
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.bind(('', self.PORT))
+        self.socket.listen(1)
+        self.stats = stats
 
-            if 'require' in composer_json:
-                for req in composer_json['require'].items():
-                    if req not in new_requires:
-                        new_requires[req[0]] = req[1]
+        while True:
+            self.listen()
 
-            if ('extra' in composer_json) & ('satis-repositories' in composer_json['extra']):
-                for composer_repo in composer_json['extra']['satis-repositories']:
-                    if 'package' not in composer_repo:
-                        new_composer_repos[composer_repo['url']+composer_repo['type']] \
-                            = composer_repo
+    def listen(self):
+        csock, caddr = self.socket.accept()
+        print("Connection from: " + caddr)
+        req = csock.recv(1024)
 
-        return {'new_item': {'repos': list(new_composer_repos.values()), 'requires': new_requires}}
+        print(req)
+
+
+
+
 SATIS_URL = 'http://localhost:4680/repo_manager.php'
-
 
 # Progarm run code test
 rm = program.RepositoryManager()
@@ -103,3 +106,5 @@ satis = SatisCommunicator(SATIS_URL, rm)
 satis.update_satis()
 
 StatsToXML.frequency_outptut(stats.package_use_frequency, stats.package_used_by)
+
+socket_interface(stats)
